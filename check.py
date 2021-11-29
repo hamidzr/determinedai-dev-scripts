@@ -15,8 +15,8 @@ os.chdir(root)
 
 rules = {
   root/'harness': 'make -j fmt; make -j check; make -j build',
-  root/'proto': '''make build fmt check && make -C ../bindings build && make -C ../webui/react bindings-copy-over''',
-  root/'webui'/'react': '''make -j fmt; make -j check && make -j build; make test''',
+  root/'proto': '''make fmt check build && make -C ../bindings build && make -C ../webui/react bindings-copy-over''',
+  root/'webui'/'react': '''make -j fmt; make -j check && make -j test; make -j build''',
   root/'master': '''make -C ../proto build && make -j fmt; make -j check && make -j build;''',
 }
 
@@ -41,14 +41,19 @@ def is_child(path: Path, parent: Path) -> bool:
 
 # check if path is the same or child of one of the rules and execute the rule as 
 # subprocess
-def run_rules(dirty_path: Path):
-    for rule_path, rule in rules.items():
-        if is_child(dirty_path, rule_path):
-            os.chdir(rule_path)
-            print(f'in {rule_path.relative_to(root)} run {rule}')
-            os.system(rule)
+def run_rules(rule_path: Path):
+    rule = rules[rule_path]
+    os.chdir(rule_path)
+    print(f'in {rule_path.relative_to(root)} run {rule}')
+    os.system(rule)
 
+def find_rules(paths: List[Path]):
+    resolved_paths = set()
+    for dirty_path in paths:
+        for rule_path in rules.keys():
+            if is_child(dirty_path, rule_path):
+                resolved_paths.add(rule_path)
+    return resolved_paths
 
-# print('dirty files', get_git_status())
-for dirty_path in get_git_status():
-    run_rules(dirty_path)
+for rule_path in find_rules(get_git_status()):
+    run_rules(rule_path)
