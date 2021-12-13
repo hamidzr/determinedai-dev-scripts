@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
-from typing import List
+from typing import List, Union, Dict, Set
 from pathlib import Path
 import os
+import sys
+
+# TODO add option to run rules in parallel
+# TODO add option to pass in a git diff to check or git hash
 
 PROJECT_NAME = "determined"
 root = Path(os.getenv('PROJECT_ROOT', os.getcwd())).absolute()
@@ -13,11 +17,21 @@ if not str(root).endswith(PROJECT_NAME):
 os.chdir(root)
 
 
-rules = {
-  root/'harness': 'make -j fmt; make -j check; make -j build',
-  root/'proto': '''make fmt check build && make -C ../bindings build && make -C ../webui/react bindings-copy-over''',
-  root/'webui'/'react': '''make -j fmt; make -j check && make -j test; make -j build''',
+rules: Dict[Path, Union[str, List[str]]] = {
+  root/'harness': [
+    'make -j fmt; make -j check',
+    'make -j build',
+  ],
+  root/'proto': [
+    'make fmt check build',
+    'make -C ../bindings build && make -C ../webui/react bindings-copy-over && make -C ../webui/react check',
+  ],
+  root/'webui'/'react': [
+    'make -j fmt; make -j check',
+    'make -j test && make -j build'
+  ],
   root/'master': '''make -C ../proto build && make -j fmt; make -j check && make -j build;''',
+  root/'docs': 'make fmt check build',
 }
 
 # get a list of paths to dirty and staged files from git
@@ -41,11 +55,19 @@ def is_child(path: Path, parent: Path) -> bool:
 
 # check if path is the same or child of one of the rules and execute the rule as 
 # subprocess
-def run_rules(rule_path: Path):
+def run_rule(rule_path: Path) -> int:
     rule = rules[rule_path]
     os.chdir(rule_path)
-    print(f'in {rule_path.relative_to(root)} run {rule}')
-    os.system(rule)
+    print(f'in direcotry "{rule_path.relative_to(root)}" run: {rule}')
+    if isinstance(rule, str):
+        os.system(rule)
+    else:
+        for cmd in rule:
+            return_code = os.system(cmd)
+            if return_code != 0:
+                print(f'command "{cmd}" failed with return code {return_code}', file=sys.stderr)
+                return return_code
+    return 0
 
 def find_rules(paths: List[Path]):
     resolved_paths = set()
@@ -55,5 +77,14 @@ def find_rules(paths: List[Path]):
                 resolved_paths.add(rule_path)
     return resolved_paths
 
-for rule_path in find_rules(get_git_status()):
-    run_rules(rule_path)
+def main():
+  failed_rules: Set[Path] = set()
+  for rule_path in find_rules(get_git_status()):
+      rv = run_rule(rule_path)
+      if rv != 0:
+        failed_rules.add(rule_path)
+  if len(failed_rules):
+    print(f'{len(failed_rules)} check(s) failed {[str(r) for r in failed_rules]}', file=sys.stderr)
+    exit(1)
+
+main()
