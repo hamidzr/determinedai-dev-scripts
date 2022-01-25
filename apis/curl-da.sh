@@ -10,8 +10,11 @@ else
   token=$(token-da.sh)
 fi
 
+
 [ -z $token ] && echo "failed to get token. set var DET_MASTER." && exit 1
 
+# -H "Content-type: application/json" \
+# -H "Content-Type: application/merge-patch+json" \
+
 curl -H "Authorization: Bearer ${token}" \
-  -H "Content-type: application/json" \
   "${@}"
