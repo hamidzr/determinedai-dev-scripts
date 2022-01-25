@@ -34,12 +34,27 @@ rules: Dict[Path, Union[str, List[str]]] = {
   root/'docs': 'make fmt check build',
 }
 
+def get_git_commit_files(commit_hash: str) -> List[Path]:
+    output = os.popen(f'git diff-tree --no-commit-id --name-only -r {commit_hash}').read()
+    lines = output.split('\n')
+    lines = [x for x in lines if x]
+    files = [Path(x).absolute() for x in lines]
+    return files
+
 # get a list of paths to dirty and staged files from git
 def get_git_status() -> List[Path]:
     git_status = os.popen('git status --porcelain').read()
     git_status_list = git_status.split('\n')
     git_status_list = [x for x in git_status_list if x]
     files = [Path(x.split()[1]).absolute() for x in git_status_list]
+    return files
+
+# gets last changed files
+def get_changed_files() -> List[Path]:
+    files = get_git_status()
+    if (len(files) != 0):
+      return files
+    files = get_git_commit_files('HEAD')
     return files
 
 # check if path a child of another path
@@ -79,7 +94,7 @@ def find_rules(paths: List[Path]):
 
 def main():
   failed_rules: Set[Path] = set()
-  for rule_path in find_rules(get_git_status()):
+  for rule_path in find_rules(get_changed_files()):
       rv = run_rule(rule_path)
       if rv != 0:
         failed_rules.add(rule_path)
