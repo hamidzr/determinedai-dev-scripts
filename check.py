@@ -30,7 +30,11 @@ rules: Dict[Path, Union[str, List[str]]] = {
     'make -j fmt; make -j check',
     'make -j test && make -j build'
   ],
-  root/'master': '''make -C ../proto build && make -j fmt; make -j check && make -j build;''',
+  root/'master': [
+    'make -C ../proto build',
+    'make build',
+    'make fmt; make check',
+  ],
   root/'docs': 'make fmt check build',
 }
 
