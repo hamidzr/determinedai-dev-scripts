@@ -34,6 +34,7 @@ rules: Dict[Path, Union[str, List[str]]] = {
     'make -C ../proto build',
     'make build',
     'make fmt; make check',
+    'make test',
   ],
   root/'docs': 'make fmt check build',
 }
