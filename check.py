@@ -10,7 +10,7 @@ import sys
 
 PROJECT_NAME = "determined"
 root = Path(os.getenv('PROJECT_ROOT', os.getcwd())).absolute()
-if not str(root).endswith(PROJECT_NAME):
+if not str(root).endswith(PROJECT_NAME) and not str(root).endswith('saas'): # FIXME
     print("Please run this script from the root of the project or set it using " +
     "PROJECT_ROOT env variable")
     exit(1)
@@ -37,6 +37,7 @@ rules: Dict[Path, Union[str, List[str]]] = {
     'make test',
   ],
   root/'docs': 'make fmt check build',
+  root/'.circleci': 'circleci config validate config.yml',
 }
 
 def get_git_commit_files(commit_hash: str) -> List[Path]:
