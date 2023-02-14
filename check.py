@@ -100,7 +100,11 @@ def find_rules(paths: List[Path]):
 
 def main():
   failed_rules: Set[Path] = set()
-  for rule_path in find_rules(get_changed_files()):
+  changed_files = get_changed_files()
+  if len(changed_files) == 0:
+    print("No changed files.")
+    exit(0)
+  for rule_path in find_rules(changed_files):
       rv = run_rule(rule_path)
       if rv != 0:
         failed_rules.add(rule_path)
