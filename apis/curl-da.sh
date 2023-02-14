@@ -4,10 +4,10 @@
 
 url=$1
 
-if [ -z $DET_MASTER ]; then
+if [ ! -z $url ]; then
   token=$(token-da.sh $url)
 else
-  token=$(token-da.sh)
+  token=$(token-da.sh $DET_MASTER)
 fi
 
 

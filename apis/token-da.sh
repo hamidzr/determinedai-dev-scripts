@@ -5,14 +5,15 @@
 url=$1
 host=""
 
-if [ ! -z $DET_MASTER ]; then
-  host=${DET_MASTER}
-elif [ -z $url ]; then
-  host=http://localhost:8080
-else
+if [ ! -z $url ]; then
   host=$(echo $url | grep -Eo 'https?://[^/]+')
+elif [ ! -z $DET_MASTER ]; then
+  host=${DET_MASTER}
+else
+  host=http://localhost:8080
 fi
 
+  # --data-binary '{"username":"admin","password":""}' \
 # check the username and password below
 response=$(curl -s "${host}/api/v1/auth/login?cookie=true&isHashed=false" \
   -H 'Content-Type: application/json' \
